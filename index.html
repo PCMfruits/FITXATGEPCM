@@ -228,12 +228,13 @@
                 <div class="automatic-heading">
                   <div>
                     <h3>Fitxatge automàtic de dilluns a divendres</h3>
-                    <p>Quan estigui activat, Supabase registrarà automàticament les quatre marques del dia: entrada 1, sortida 1, entrada 2 i sortida 2. En cada tanda esperarà entre 10 i 20 segons entre empleats.</p>
+                    <p>Quan estigui activat, Supabase registrarà automàticament la jornada segons el tipus seleccionat. En cada tanda esperarà entre 10 i 20 segons entre empleats.</p>
                   </div>
                   <span class="automation-status" id="autoPunchStatus">Desactivat</span>
                 </div>
                 <div class="automatic-grid">
                   <label class="switch-label"><input id="autoPunchEnabled" type="checkbox" /> Activar fitxatge automàtic</label>
+                  <label>Tipus de jornada<select id="autoPunchMode"><option value="completa">Jornada completa (2 entrades + 2 sortides)</option><option value="mitja">Mitja jornada (1 entrada + 1 sortida)</option></select></label>
                   <label>Entrada 1<input id="autoPunchEntry1" type="time" value="08:00" /></label>
                   <label>Sortida 1<input id="autoPunchExit1" type="time" value="13:00" /></label>
                   <label>Entrada 2<input id="autoPunchEntry2" type="time" value="15:00" /></label>

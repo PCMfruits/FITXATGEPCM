@@ -5,7 +5,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_yINpI3MnA7jWaLLROmechw_7K0GqwwR";
 const isConfigured = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("POSA_AQUI") && !SUPABASE_ANON_KEY.includes("POSA_AQUI") && !SUPABASE_ANON_KEY.startsWith("sb_secret_");
 const db = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-const ids = ["employeeCode","toggleCodeBtn","entryBtn","exitBtn","resultCard","resultIcon","resultTitle","resultText","connectionDot","connectionText","currentDate","currentTime","adminEmail","adminPassword","adminLoginBtn","adminLogin","adminPanel","adminUser","recordsBody","employeesBody","refreshBtn","exportBtn","exportSummaryBtn","logoutBtn","employeeSearch","employeeFilter","monthFilter","dayFilter","typeFilter","clearFiltersBtn","recordCount","employeeForm","editingEmployeeId","employeeName","employeeAdminCode","employeeActive","saveEmployeeBtn","cancelEditEmployeeBtn","employeeListSearch","employeeSort","employeeCount","employeeMonthSummary","summaryPlaceholder","summaryContent","summaryEmployeeName","summaryMonthLabel","summaryTotalHours","summaryWorkedDays","workCalendar","dailySummaryBody","bulkProgress","bulkProgressTitle","bulkProgressText","cancelBulkBtn","punchEditorCategory","punchEditorForm","editPunchEmployee","editPunchDate","editPunchEntry1","editPunchExit1","editPunchEntry2","editPunchExit2","editPunchHours","editPunchReason","loadPunchDayBtn","savePunchDayBtn","clearPunchDayBtn","batchStartDate","batchEndDate","batchEntry1","batchExit1","batchEntry2","batchExit2","batchReason","createBatchDaysBtn","weekdayPicker","employeeDocument","workerPortalDetails","workerPortalLogin","workerPortalCode","workerPortalMonth","workerPortalBtn","workerPortalPanel","workerPortalName","workerPortalMonthLabel","workerPortalHours","workerPortalDays","workerPortalCalendar","workerPortalRecords","workerPortalCloseBtn","batchAllActive","autoPunchStatus","autoPunchEnabled","autoPunchEntry1","autoPunchExit1","autoPunchEntry2","autoPunchExit2","saveAutoPunchBtn","notificationBtn","editCalendarMonth","editPunchCalendar","editSelectedDate","editFullDayBtn","editHalfDayBtn","editPunchExit1Label","editPunchEntry2Label","editPunchExit2Label"];
+const ids = ["employeeCode","toggleCodeBtn","entryBtn","exitBtn","resultCard","resultIcon","resultTitle","resultText","connectionDot","connectionText","currentDate","currentTime","adminEmail","adminPassword","adminLoginBtn","adminLogin","adminPanel","adminUser","recordsBody","employeesBody","refreshBtn","exportBtn","exportSummaryBtn","logoutBtn","employeeSearch","employeeFilter","monthFilter","dayFilter","typeFilter","clearFiltersBtn","recordCount","employeeForm","editingEmployeeId","employeeName","employeeAdminCode","employeeActive","saveEmployeeBtn","cancelEditEmployeeBtn","employeeListSearch","employeeSort","employeeCount","employeeMonthSummary","summaryPlaceholder","summaryContent","summaryEmployeeName","summaryMonthLabel","summaryTotalHours","summaryWorkedDays","workCalendar","dailySummaryBody","bulkProgress","bulkProgressTitle","bulkProgressText","cancelBulkBtn","punchEditorCategory","punchEditorForm","editPunchEmployee","editPunchDate","editPunchEntry1","editPunchExit1","editPunchEntry2","editPunchExit2","editPunchHours","editPunchReason","loadPunchDayBtn","savePunchDayBtn","clearPunchDayBtn","batchStartDate","batchEndDate","batchEntry1","batchExit1","batchEntry2","batchExit2","batchReason","createBatchDaysBtn","weekdayPicker","employeeDocument","workerPortalDetails","workerPortalLogin","workerPortalCode","workerPortalMonth","workerPortalBtn","workerPortalPanel","workerPortalName","workerPortalMonthLabel","workerPortalHours","workerPortalDays","workerPortalCalendar","workerPortalRecords","workerPortalCloseBtn","batchAllActive","autoPunchStatus","autoPunchEnabled","autoPunchMode","autoPunchEntry1","autoPunchExit1","autoPunchEntry2","autoPunchExit2","saveAutoPunchBtn","notificationBtn","editCalendarMonth","editPunchCalendar","editSelectedDate","editFullDayBtn","editHalfDayBtn","editPunchExit1Label","editPunchEntry2Label","editPunchExit2Label"];
 const els = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
 
 let currentRecords = [];
@@ -592,30 +592,45 @@ async function loadAutoPunchConfig() {
   if (error) { els.autoPunchStatus.textContent = "Error de configuració"; return; }
   const config = Array.isArray(data) ? data[0] : data;
   els.autoPunchEnabled.checked = Boolean(config?.actiu);
+  els.autoPunchMode.value = config?.jornada_mode === "mitja" ? "mitja" : "completa";
   els.autoPunchEntry1.value = String(config?.entrada_1 || "08:00").slice(0,5);
   els.autoPunchExit1.value = String(config?.sortida_1 || "13:00").slice(0,5);
   els.autoPunchEntry2.value = String(config?.entrada_2 || "15:00").slice(0,5);
   els.autoPunchExit2.value = String(config?.sortida_2 || "17:00").slice(0,5);
+  updateAutoPunchModeUI();
   updateAutoPunchStatus();
+}
+function updateAutoPunchModeUI() {
+  const half = els.autoPunchMode.value === "mitja";
+  const entry2Label = els.autoPunchEntry2.closest("label");
+  const exit2Label = els.autoPunchExit2.closest("label");
+  if (entry2Label) entry2Label.classList.toggle("hidden", half);
+  if (exit2Label) exit2Label.classList.toggle("hidden", half);
 }
 function updateAutoPunchStatus() {
   const enabled = els.autoPunchEnabled.checked;
-  els.autoPunchStatus.textContent = enabled ? "Activat" : "Desactivat";
+  const half = els.autoPunchMode.value === "mitja";
+  els.autoPunchStatus.textContent = enabled ? (half ? "Activat · Mitja jornada" : "Activat · Jornada completa") : "Desactivat";
   els.autoPunchStatus.classList.toggle("active", enabled);
 }
 async function saveAutoPunchConfig() {
   if (!assertPrimaryAdmin()) return;
+  const mode = els.autoPunchMode.value;
   const e1=els.autoPunchEntry1.value, s1=els.autoPunchExit1.value, e2=els.autoPunchEntry2.value, s2=els.autoPunchExit2.value;
-  if (!e1 || !s1 || !e2 || !s2) return showResult(false, "Horari incomplet", "Indica les quatre hores de les dues jornades.");
+  if (!e1 || !s1) return showResult(false, "Horari incomplet", "Indica l'entrada i la sortida de la jornada.");
+  if (mode === "completa" && (!e2 || !s2)) return showResult(false, "Horari incomplet", "A la jornada completa cal indicar les quatre hores.");
+  if (!(e1 < s1)) return showResult(false, "Horari no vàlid", "L'entrada 1 ha de ser anterior a la sortida 1.");
+  if (mode === "completa" && !(s1 <= e2 && e2 < s2)) return showResult(false, "Horari no vàlid", "La jornada completa ha de tenir les hores en ordre.");
   els.saveAutoPunchBtn.disabled = true;
   const { error } = await db.rpc("admin_guardar_config_fitxatge_automatic_doble", {
-    p_actiu: els.autoPunchEnabled.checked, p_entrada_1:e1, p_sortida_1:s1, p_entrada_2:e2, p_sortida_2:s2
+    p_actiu: els.autoPunchEnabled.checked, p_jornada_mode: mode, p_entrada_1:e1, p_sortida_1:s1, p_entrada_2: mode === "completa" ? e2 : null, p_sortida_2: mode === "completa" ? s2 : null
   });
   els.saveAutoPunchBtn.disabled = false;
   if (error) return showResult(false, "No s'ha pogut guardar", humanizeError(error.message));
+  updateAutoPunchModeUI();
   updateAutoPunchStatus();
   showResult(true, "Configuració guardada", els.autoPunchEnabled.checked
-    ? `Automàtic activat: ${e1}-${s1} i ${e2}-${s2}, de dilluns a divendres.`
+    ? (mode === "mitja" ? `Automàtic activat en mitja jornada: ${e1}-${s1}, de dilluns a divendres.` : `Automàtic activat: ${e1}-${s1} i ${e2}-${s2}, de dilluns a divendres.`)
     : "Fitxatge automàtic desactivat. Els fitxatges es faran manualment.");
 }
 
@@ -801,6 +816,7 @@ els.loadPunchDayBtn.addEventListener("click", loadPunchDay);
 els.clearPunchDayBtn.addEventListener("click", clearPunchDay);
 els.createBatchDaysBtn.addEventListener("click", createBatchDays);
 els.autoPunchEnabled.addEventListener("change", updateAutoPunchStatus);
+els.autoPunchMode.addEventListener("change", () => { updateAutoPunchModeUI(); updateAutoPunchStatus(); });
 els.saveAutoPunchBtn.addEventListener("click", saveAutoPunchConfig);
 els.notificationBtn.addEventListener("click", requestNotifications);
 els.editPunchEmployee.addEventListener("change", renderEditPunchCalendar);
